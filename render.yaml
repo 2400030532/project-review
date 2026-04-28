@@ -1,0 +1,53 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: easyintern-db
+    plan: free
+    region: oregon
+    ipAllowList: []
+    databaseName: easyintern
+    user: easyintern_user
+    postgresSQLVersion: 15
+
+  # Backend API Service
+  - type: web
+    name: easyintern-api
+    env: java
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -jar target/easyintern-api-1.0.0.jar
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: easyintern-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: easyintern-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: easyintern-db
+          property: password
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
+      - key: SPRING_JPA_DATABASE_PLATFORM
+        value: org.hibernate.dialect.PostgreSQLDialect
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: APP_CORS_ALLOWED_ORIGINS
+        value: https://easyintern-frontend.onrender.com,http://localhost:5173
+
+  # Frontend Service
+  - type: static
+    name: easyintern-frontend
+    plan: free
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://easyintern-api.onrender.com

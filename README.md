@@ -124,6 +124,23 @@ npm run docker:up
 npm run docker:down
 ```
 
+## 🌐 Render Deployment
+
+This repository includes a `render.yaml` blueprint for deploying the backend and frontend to Render:
+
+- `easyintern-api` as a Java web service
+- `easyintern-frontend` as a static site
+
+Deploy from the repository root on Render, then verify these service URLs:
+
+- Frontend: `https://easyintern-frontend.onrender.com`
+- Backend: `https://easyintern-api.onrender.com/api/v1`
+
+If you rename either service in Render, update the matching environment variables in `render.yaml`:
+
+- `APP_CORS_ALLOWED_ORIGINS` for the backend
+- `VITE_API_BASE_URL` for the frontend
+
 ## 📁 Frontend Configuration
 
 The frontend is configured to proxy API requests to the backend during development. Update `frontend/vite.config.js` to modify this behavior.
@@ -132,7 +149,7 @@ The frontend is configured to proxy API requests to the backend during developme
 
 Create `frontend/.env.local`:
 ```env
-VITE_API_URL=http://localhost:8080/api
+VITE_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
 ## 🔄 Backend Configuration
@@ -144,7 +161,7 @@ Edit `backend/src/main/resources/application.yml` to configure:
 - **Database**: MySQL or H2
 - **Server Port**: Default is 8080
 - **Context Path**: Default is `/api`
-- **CORS**: Configured for localhost:3000 and localhost:5173
+- **CORS**: Configured from `APP_CORS_ALLOWED_ORIGINS`
 
 ### Database Setup (MySQL)
 

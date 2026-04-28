@@ -1,26 +1,34 @@
 {
-  "name": "easyintern",
+  "name": "easyintern-fullstack",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "Full-stack EasyIntern application with React frontend and Spring Boot backend",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "frontend:dev": "npm run dev --prefix frontend",
+    "frontend:build": "npm run build --prefix frontend",
+    "frontend:preview": "npm run preview --prefix frontend",
+    "backend:dev": "cd backend && ..\\apache-maven-3.9.6\\bin\\mvn.cmd spring-boot:run",
+    "backend:build": "cd backend && ..\\apache-maven-3.9.6\\bin\\mvn.cmd clean package",
+    "backend:test": "cd backend && ..\\apache-maven-3.9.6\\bin\\mvn.cmd test",
+    "build": "npm run frontend:build && npm run backend:build",
+    "install:all": "npm install && npm install --prefix frontend",
+    "clean": "cd backend && mvn clean && rm -rf frontend/dist frontend/node_modules frontend/package-lock.json",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^8.55.0",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "vite": "^5.0.8"
-  }
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "react",
+    "spring-boot",
+    "full-stack",
+    "internship",
+    "java",
+    "vite"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
