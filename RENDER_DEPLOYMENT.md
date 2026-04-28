@@ -41,10 +41,19 @@ git push -u origin main
 3. Connect your GitHub account
 4. Select your repository
 5. Render will automatically detect `render.yaml` and show the services:
-   - **easyintern-db**: PostgreSQL database (free tier, 90-day auto-pause)
-   - **easyintern-api**: Java backend API (free tier)
-   - **easyintern-frontend**: React frontend static site (free tier)
+   - **easyintern-db-v2**: PostgreSQL database (free tier, 90-day auto-pause)
+   - **easyintern-api-v2**: Java backend API (free tier)
+   - **easyintern-frontend-v2**: React frontend static site (free tier)
 6. Click **"Create New Blueprint Instance"**
+
+### Step 2b: Configure Auth Environment Variables
+
+After the services are created, set the authentication variables in the Render dashboard if you do not want to rely on the placeholders in `render.yaml`:
+
+- `GOOGLE_CLIENT_ID` for Google login verification on the backend
+- `VITE_GOOGLE_CLIENT_ID` for the frontend Google sign-in button
+- `SPRING_MAIL_USERNAME` and `SPRING_MAIL_PASSWORD` for OTP email delivery
+- `APP_MAIL_FROM` for the sender address used in OTP emails
 
 ### Step 3: Monitor Deployment
 
@@ -63,8 +72,8 @@ Once deployed, you'll have:
 | Service | Type | URL | Status |
 |---------|------|-----|--------|
 | **Database** | PostgreSQL | Internal only | Free tier (90-day auto-pause) |
-| **API** | Java Web | `https://easyintern-api.onrender.com` | Free tier (auto-sleep after 15 min inactivity) |
-| **Frontend** | Static Site | `https://easyintern-frontend.onrender.com` | Free tier (always on) |
+| **API** | Java Web | `https://easyintern-api-v2.onrender.com` | Free tier (auto-sleep after 15 min inactivity) |
+| **Frontend** | Static Site | `https://easyintern-frontend-v2.onrender.com` | Free tier (always on) |
 
 ### Free Tier Limitations
 
@@ -99,7 +108,9 @@ Environment Variables (auto-set by Render):
 
 **Port**: 5173 (during build), served as static site  
 **Build Output**: `dist/` directory  
-**API URL**: Automatically set to `https://easyintern-api.onrender.com`
+**API URL**: Automatically set to `https://easyintern-api-v2.onrender.com`
+
+**Google Sign-In**: Requires `VITE_GOOGLE_CLIENT_ID`
 
 ### Database (PostgreSQL)
 
@@ -111,18 +122,23 @@ Environment Variables (auto-set by Render):
 
 1. **Check API Health**:
    ```
-   https://easyintern-api.onrender.com/actuator/health
+   https://easyintern-api-v2.onrender.com/actuator/health
    ```
 
 2. **Check Frontend**:
    ```
-   https://easyintern-frontend.onrender.com
+   https://easyintern-frontend-v2.onrender.com
    ```
 
 3. **Test API Endpoint** (example):
    ```
-   https://easyintern-api.onrender.com/api/v1/internships
+   https://easyintern-api-v2.onrender.com/api/v1/internships
    ```
+
+4. **Test Authentication**:
+   - Open the frontend
+   - Try Google sign-in
+   - Complete the OTP email challenge
 
 ## Troubleshooting
 

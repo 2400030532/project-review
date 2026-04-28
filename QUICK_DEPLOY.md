@@ -35,9 +35,9 @@
    - Frontend (React) built and deployed
 
 4. **Access Your App**:
-   - **Frontend**: https://easyintern-frontend.onrender.com
-   - **Backend API**: https://easyintern-api.onrender.com
-   - **Health Check**: https://easyintern-api.onrender.com/actuator/health
+   - **Frontend**: https://easyintern-frontend-v2.onrender.com
+   - **Backend API**: https://easyintern-api-v2.onrender.com
+   - **Health Check**: https://easyintern-api-v2.onrender.com/actuator/health
 
 ### Option B: Detailed Instructions
 
@@ -48,8 +48,8 @@ See [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md) for comprehensive setup guide.
 | Service | Tech Stack | URL |
 |---------|-----------|-----|
 | **Database** | PostgreSQL 15 | Internal connection |
-| **API** | Java 17 + Spring Boot 3.2 | easyintern-api.onrender.com |
-| **Frontend** | React + Vite | easyintern-frontend.onrender.com |
+| **API** | Java 17 + Spring Boot 3.2 | easyintern-api-v2.onrender.com |
+| **Frontend** | React + Vite | easyintern-frontend-v2.onrender.com |
 
 ## Free Tier Notes
 
@@ -78,8 +78,13 @@ SPRING_DATASOURCE_PASSWORD = auto-generated
 SPRING_DATASOURCE_DRIVER_CLASS_NAME = org.postgresql.Driver
 SPRING_JPA_DATABASE_PLATFORM = org.hibernate.dialect.PostgreSQLDialect
 SPRING_JPA_HIBERNATE_DDL_AUTO = update
-APP_CORS_ALLOWED_ORIGINS = https://easyintern-frontend.onrender.com
-VITE_API_BASE_URL = https://easyintern-api.onrender.com
+APP_CORS_ALLOWED_ORIGINS = https://easyintern-frontend-v2.onrender.com
+VITE_API_BASE_URL = https://easyintern-api-v2.onrender.com
+GOOGLE_CLIENT_ID = your-google-client-id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID = your-google-client-id.apps.googleusercontent.com
+SPRING_MAIL_USERNAME = your-email@example.com
+SPRING_MAIL_PASSWORD = your-email-app-password
+APP_MAIL_FROM = no-reply@easyintern.com
 ```
 
 ## Troubleshooting
@@ -98,6 +103,11 @@ VITE_API_BASE_URL = https://easyintern-api.onrender.com
 - Open browser DevTools (F12)
 - Check Console for errors
 - Verify API URL in Network tab
+
+**Google login or OTP not working?**
+- Verify both Google client IDs match the same OAuth app
+- Confirm backend mail credentials are valid
+- Check Render logs for SMTP or token verification errors
 
 ## Next: Custom Domain (Optional)
 

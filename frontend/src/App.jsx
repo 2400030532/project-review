@@ -449,23 +449,30 @@ function DashboardPreviewCard() {
 
 /* ─── AUTH PAGES ─────────────────────────────────────────────────────────── */
 function AuthPage({ mode, setMode, onLogin }) {
+  const googleButtonRef = useRef(null);
   const [role, setRole] = useState("student");
   const [form, setForm] = useState({ name:"", pen:"", phone:"", email:"", password:"", location:"" });
   const [errors, setErrors] = useState({});
   const [authError, setAuthError] = useState("");
+  const [googleError, setGoogleError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [otpState, setOtpState] = useState({ active: false, email: "", challengeToken: "", otp: "" });
   const isSignup = mode === "signup";
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-  const validate = () => {
+  const validateSignup = () => {
     setAuthError("");
     const newErrors = {};
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!form.name.trim()) newErrors.name = "Full name is required";
+    if (!form.pen.trim()) newErrors.pen = "PEN / Student ID is required";
+    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
     if (!form.email) {
       newErrors.email = "Email is required";
     } else if (!emailRegex.test(form.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-    // Password validation
     if (!form.password) {
       newErrors.password = "Password is required";
     } else {
@@ -482,40 +489,243 @@ function AuthPage({ mode, setMode, onLogin }) {
         newErrors.password = "Password must contain at least one special character";
       }
     }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      return false;
-    }
 
-    return true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validate()) {
+  const validateLogin = () => {
+    setAuthError("");
+    const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!form.email) {
+      newErrors.email = "Email is required";
+    } else if (!emailRegex.test(form.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    if (!form.password) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const showOtpChallenge = (responseData) => {
+    setOtpState({
+      active: true,
+      email: responseData.email || form.email,
+      challengeToken: responseData.challengeToken || "",
+      otp: "",
+    });
+    setAuthError("");
+    setGoogleError("");
+  };
+
+  const submitOtp = async () => {
+    if (!otpState.otp.trim()) {
+      setAuthError("Enter the OTP sent to your email");
       return;
     }
 
+    setLoading(true);
     try {
-      const payload = {
-        fullName: form.name,
-        pen: form.pen,
-        phone: form.phone,
+      const response = await API.post("/auth/verify-otp", {
+        challengeToken: otpState.challengeToken,
+        otp: otpState.otp.trim(),
+      });
+      setOtpState({ active: false, email: "", challengeToken: "", otp: "" });
+      onLogin(response.data);
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || "OTP verification failed";
+      setAuthError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (isSignup) {
+      if (!validateSignup()) {
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const payload = {
+          fullName: form.name,
+          pen: form.pen,
+          phone: form.phone,
+          email: form.email.toLowerCase(),
+          password: form.password,
+          location: form.location,
+          role,
+        };
+
+        const response = await API.post("/auth/signup", payload);
+        const userData = response.data;
+        setAuthError("");
+        onLogin({ id: userData.id, fullName: userData.fullName, email: userData.email, role: userData.role });
+      } catch (error) {
+        const message = error?.response?.data?.message || error?.message || "Authentication failed";
+        setAuthError(message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (!validateLogin()) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await API.post("/auth/login", {
         email: form.email.toLowerCase(),
         password: form.password,
-        location: form.location,
         role,
-      };
-
-      const endpoint = isSignup ? "/auth/signup" : "/auth/login";
-      const response = await API.post(endpoint, payload);
+      });
       const userData = response.data;
-      setAuthError("");
-      onLogin({ id: userData.id, fullName: userData.fullName, email: userData.email, role: userData.role });
+      if (userData.otpRequired) {
+        showOtpChallenge(userData);
+      } else {
+        onLogin(userData);
+      }
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || "Authentication failed";
       setAuthError(message);
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isSignup) {
+      return undefined;
+    }
+
+    if (!googleClientId) {
+      setGoogleError("Set VITE_GOOGLE_CLIENT_ID to enable Google sign-in.");
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const initializeGoogleButton = () => {
+      if (cancelled || !googleButtonRef.current || !window.google?.accounts?.id) {
+        return;
+      }
+
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (credentialResponse) => {
+          if (!credentialResponse?.credential) {
+            return;
+          }
+
+          setLoading(true);
+          setAuthError("");
+          setGoogleError("");
+          try {
+            const response = await API.post("/auth/google", {
+              credential: credentialResponse.credential,
+              role,
+            });
+            const userData = response.data;
+            if (userData.otpRequired) {
+              showOtpChallenge(userData);
+            } else {
+              onLogin(userData);
+            }
+          } catch (error) {
+            const message = error?.response?.data?.message || error?.message || "Google sign-in failed";
+            setGoogleError(message);
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        shape: "pill",
+        width: 360,
+        text: "continue_with",
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      initializeGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const scriptId = "google-identity-services";
+    let script = document.getElementById(scriptId);
+    if (!script) {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = initializeGoogleButton;
+      script.onerror = () => setGoogleError("Unable to load Google sign-in right now.");
+      document.head.appendChild(script);
+    } else if (window.google?.accounts?.id) {
+      initializeGoogleButton();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [googleClientId, isSignup, onLogin, role]);
+
+  if (otpState.active) {
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"100px 24px 40px", position:"relative" }}>
+        <div style={{ position:"absolute", top:"30%", left:"50%", transform:"translateX(-50%)", width:600, height:400, borderRadius:"50%", background:"radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)", pointerEvents:"none" }} />
+
+        <div className="fade-up" style={{ width:"100%", maxWidth:440 }}>
+          <div style={{ textAlign:"center", marginBottom:36 }}>
+            <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:32, fontWeight:800, marginBottom:8 }}>
+              Verify your email
+            </h1>
+            <p style={{ color:C.textMuted, fontSize:14 }}>
+              We sent a 6-digit OTP to {otpState.email}
+            </p>
+          </div>
+
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:36 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <Field label="OTP" id="otp" type="text" value={otpState.otp} onChange={v=>setOtpState({...otpState, otp:v})} placeholder="123456" error={errors.otp} />
+
+              {authError && <div style={{ color: C.red, fontSize: 13, fontWeight: 600 }}>{authError}</div>}
+
+              <button onClick={submitOtp} disabled={loading} style={{
+                marginTop:8, padding:"13px", borderRadius:10, fontSize:15, fontWeight:600,
+                background: loading ? C.textMuted : C.purple, color:"#fff", transition:"all 0.2s",
+                opacity: loading ? 0.75 : 1,
+              }}>
+                {loading ? "Verifying..." : "Verify OTP →"}
+              </button>
+
+              <button type="button" onClick={() => setOtpState({ active:false, email:"", challengeToken:"", otp:"" })} style={{
+                padding:"12px", borderRadius:10, fontSize:14, fontWeight:600,
+                background:"transparent", color:C.textMuted, border:`1px solid ${C.border}`,
+              }}>
+                Back to login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"100px 24px 40px", position:"relative" }}>
@@ -532,7 +742,6 @@ function AuthPage({ mode, setMode, onLogin }) {
         </div>
 
         <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:36 }}>
-          {/* Role tabs */}
           <div style={{ display:"flex", background:C.surface, borderRadius:10, padding:4, marginBottom:28, gap:4 }}>
             {["student","employer","admin"].map(r => (
               <button key={r} onClick={() => setRole(r)} style={{
@@ -550,32 +759,43 @@ function AuthPage({ mode, setMode, onLogin }) {
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             {isSignup && (
               <>
-                <Field label="Full Name"       id="name"  type="text"     value={form.name}     onChange={v=>setForm({...form,name:v})}     placeholder="Rahul Sharma" />
-                <Field label="PEN / Student ID" id="pen"  type="text"     value={form.pen}      onChange={v=>setForm({...form,pen:v})}      placeholder="2021CS001" />
-                <Field label="Phone Number"    id="phone" type="tel"      value={form.phone}    onChange={v=>setForm({...form,phone:v})}    placeholder="+91 98765 43210" />
+                <Field label="Full Name" id="name" type="text" value={form.name} onChange={v=>setForm({...form,name:v})} placeholder="Rahul Sharma" error={errors.name} />
+                <Field label="PEN / Student ID" id="pen" type="text" value={form.pen} onChange={v=>setForm({...form,pen:v})} placeholder="2021CS001" error={errors.pen} />
+                <Field label="Phone Number" id="phone" type="tel" value={form.phone} onChange={v=>setForm({...form,phone:v})} placeholder="+91 98765 43210" error={errors.phone} />
               </>
             )}
-            <Field label="Email"               id="email"    type="email"    value={form.email}    onChange={v=>setForm({...form,email:v})}    placeholder="you@example.com" error={errors.email} />
-            <Field label="Password"            id="password" type="password" value={form.password} onChange={v=>setForm({...form,password:v})} placeholder="••••••••" error={errors.password} />
+            <Field label="Email" id="email" type="email" value={form.email} onChange={v=>setForm({...form,email:v})} placeholder="you@example.com" error={errors.email} />
+            <Field label="Password" id="password" type="password" value={form.password} onChange={v=>setForm({...form,password:v})} placeholder="••••••••" error={errors.password} />
             {isSignup && (
-              <Field label="Location"          id="location" type="text"    value={form.location} onChange={v=>setForm({...form,location:v})} placeholder="Hyderabad, India" />
+              <Field label="Location" id="location" type="text" value={form.location} onChange={v=>setForm({...form,location:v})} placeholder="Hyderabad, India" error={errors.location} />
             )}
 
             {authError && <div style={{ color: C.red, marginBottom: 12, fontSize: 13, fontWeight: 600 }}>{authError}</div>}
-            <button onClick={handleSubmit} style={{
+            <button onClick={handleSubmit} disabled={loading} style={{
               marginTop:8, padding:"13px", borderRadius:10, fontSize:15, fontWeight:600,
-              background:C.purple, color:"#fff", transition:"all 0.2s",
+              background: loading ? C.textMuted : C.purple, color:"#fff", transition:"all 0.2s",
+              opacity: loading ? 0.75 : 1,
             }}
-            onMouseEnter={e=>e.currentTarget.style.background="#7c3aed"}
-            onMouseLeave={e=>e.currentTarget.style.background=C.purple}
-            >{isSignup?"Create Account →":"Sign In →"}</button>
+            onMouseEnter={e=>{ if (!loading) { e.currentTarget.style.background="#7c3aed"; } }}
+            onMouseLeave={e=>{ if (!loading) { e.currentTarget.style.background=C.purple; } }}
+            >{loading ? "Please wait..." : isSignup?"Create Account →":"Sign In →"}</button>
+
+            {!isSignup && (
+              <>
+                <div style={{ display:"flex", alignItems:"center", gap:12, color:C.textMuted, fontSize:12, textTransform:"uppercase", letterSpacing:"0.08em" }}>
+                  <span style={{ height:1, flex:1, background:C.border }} />
+                  or
+                  <span style={{ height:1, flex:1, background:C.border }} />
+                </div>
+                <div ref={googleButtonRef} style={{ display:"flex", justifyContent:"center" }} />
+                {googleError && <div style={{ color: C.red, fontSize: 13, fontWeight: 600, textAlign: "center" }}>{googleError}</div>}
+              </>
+            )}
           </div>
 
           <p style={{ textAlign:"center", marginTop:20, fontSize:13, color:C.textMuted }}>
             {isSignup?"Already have an account?":"Don't have an account?"}{" "}
-            <span style={{ color:C.purple, cursor:"pointer", fontWeight:600 }} onClick={() => setMode(isSignup?"login":"signup")}>
-              {isSignup?"Log in":"Sign up"}
-            </span>
+            <span style={{ color:C.purple, cursor:"pointer", fontWeight:600 }} onClick={() => setMode(isSignup?"login":"signup")}>{isSignup?"Log in":"Sign up"}</span>
           </p>
         </div>
       </div>

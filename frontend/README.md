@@ -235,11 +235,19 @@ npm install -g vercel
 vercel
 ```
 
+Deploy from the `frontend/` folder and set `VITE_API_BASE_URL` to the deployed backend URL.
+
 #### Netlify
 ```bash
 npm install -g netlify-cli
 netlify deploy
 ```
+
+Use the included `netlify.toml` so client-side routes resolve correctly.
+
+#### Backend Hosting
+
+The Spring Boot backend is not supported on Vercel or Netlify static hosting. Deploy it to a Java host such as Render, then point the frontend at that URL with `VITE_API_BASE_URL`.
 
 #### Docker
 ```bash

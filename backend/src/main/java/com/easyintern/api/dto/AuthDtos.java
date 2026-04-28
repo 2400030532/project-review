@@ -13,6 +13,7 @@ public class AuthDtos {
         private String password;
         private String location;
         private String role;
+        private String credential;
 
         public String getFullName() {
             return fullName;
@@ -69,6 +70,35 @@ public class AuthDtos {
         public void setRole(String role) {
             this.role = role;
         }
+
+        public String getCredential() {
+            return credential;
+        }
+
+        public void setCredential(String credential) {
+            this.credential = credential;
+        }
+    }
+
+    public static class OtpVerificationRequest {
+        private String challengeToken;
+        private String otp;
+
+        public String getChallengeToken() {
+            return challengeToken;
+        }
+
+        public void setChallengeToken(String challengeToken) {
+            this.challengeToken = challengeToken;
+        }
+
+        public String getOtp() {
+            return otp;
+        }
+
+        public void setOtp(String otp) {
+            this.otp = otp;
+        }
     }
 
     public static class AuthResponse {
@@ -77,6 +107,8 @@ public class AuthDtos {
         private String email;
         private String role;
         private String message;
+        private boolean otpRequired;
+        private String challengeToken;
 
         public AuthResponse() {
         }
@@ -87,6 +119,17 @@ public class AuthDtos {
             this.email = email;
             this.role = role;
             this.message = message;
+            this.otpRequired = false;
+        }
+
+        public AuthResponse(Long id, String fullName, String email, String role, String message, boolean otpRequired, String challengeToken) {
+            this.id = id;
+            this.fullName = fullName;
+            this.email = email;
+            this.role = role;
+            this.message = message;
+            this.otpRequired = otpRequired;
+            this.challengeToken = challengeToken;
         }
 
         public Long getId() {
@@ -127,6 +170,22 @@ public class AuthDtos {
 
         public void setMessage(String message) {
             this.message = message;
+        }
+
+        public boolean isOtpRequired() {
+            return otpRequired;
+        }
+
+        public void setOtpRequired(boolean otpRequired) {
+            this.otpRequired = otpRequired;
+        }
+
+        public String getChallengeToken() {
+            return challengeToken;
+        }
+
+        public void setChallengeToken(String challengeToken) {
+            this.challengeToken = challengeToken;
         }
     }
 }

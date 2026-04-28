@@ -1,17 +1,17 @@
 services:
   # PostgreSQL Database
   - type: pserv
-    name: easyintern-db
+    name: easyintern-db-v2
     plan: free
     region: oregon
     ipAllowList: []
-    databaseName: easyintern
+    databaseName: easyintern_v2
     user: easyintern_user
     postgresSQLVersion: 15
 
   # Backend API Service
   - type: web
-    name: easyintern-api
+    name: easyintern-api-v2
     env: java
     plan: free
     region: oregon
@@ -21,15 +21,15 @@ services:
     envVars:
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
-          name: easyintern-db
+          name: easyintern-db-v2
           property: connectionString
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
-          name: easyintern-db
+          name: easyintern-db-v2
           property: user
       - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase:
-          name: easyintern-db
+          name: easyintern-db-v2
           property: password
       - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
         value: org.postgresql.Driver
@@ -38,11 +38,19 @@ services:
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
       - key: APP_CORS_ALLOWED_ORIGINS
-        value: https://easyintern-frontend.onrender.com,http://localhost:5173
+        value: https://easyintern-frontend-v2.onrender.com,http://localhost:5173
+      - key: GOOGLE_CLIENT_ID
+        value: your-google-client-id.apps.googleusercontent.com
+      - key: APP_MAIL_FROM
+        value: no-reply@easyintern.com
+      - key: SPRING_MAIL_USERNAME
+        value: your-email@example.com
+      - key: SPRING_MAIL_PASSWORD
+        value: your-email-app-password
 
   # Frontend Service
   - type: static
-    name: easyintern-frontend
+    name: easyintern-frontend-v2
     plan: free
     region: oregon
     rootDir: frontend
@@ -50,4 +58,6 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://easyintern-api.onrender.com
+        value: https://easyintern-api-v2.onrender.com
+      - key: VITE_GOOGLE_CLIENT_ID
+        value: your-google-client-id.apps.googleusercontent.com

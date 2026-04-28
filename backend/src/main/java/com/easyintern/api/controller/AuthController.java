@@ -2,6 +2,7 @@ package com.easyintern.api.controller;
 
 import com.easyintern.api.dto.AuthDtos.AuthRequest;
 import com.easyintern.api.dto.AuthDtos.AuthResponse;
+import com.easyintern.api.dto.AuthDtos.OtpVerificationRequest;
 import com.easyintern.api.model.User;
 import com.easyintern.api.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -28,8 +29,16 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
-        User user = userService.authenticate(request.getEmail(), request.getPassword(), request.getRole());
-        AuthResponse response = new AuthResponse(user.getId(), user.getFullName(), user.getEmail(), user.getRole(), "Login successful");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.authenticateAndSendOtp(request.getEmail(), request.getPassword(), request.getRole()));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> google(@RequestBody AuthRequest request) {
+        return ResponseEntity.ok(userService.authenticateWithGoogle(request.getCredential(), request.getRole()));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<AuthResponse> verifyOtp(@RequestBody OtpVerificationRequest request) {
+        return ResponseEntity.ok(userService.verifyOtp(request));
     }
 }
